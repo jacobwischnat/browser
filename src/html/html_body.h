@@ -2,24 +2,30 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "../context.h"
+#include "../types.h"
 #include "html_element.h"
 
-class HTMLBody : public HTMLElement {
+class HTMLBody {
     public:
+        Context* context;
+        HTMLElement* element;
+
         void draw();
-        HTMLBody(Context*);
+        HTMLBody(Context*,HTMLElement*);
 };
 
-HTMLBody::HTMLBody(Context* ctx):HTMLElement(ctx) {
-    this->setPosition(8, 8);
+HTMLBody::HTMLBody(Context* ctx, HTMLElement* element) {
+    this->context = ctx;
+    this->element = element;
+
+    this->element->setPosition(8, 8);
 };
 
 void HTMLBody::draw() {
-    sf::Vector2f pos(this->left, this->top);
+    sf::Vector2f pos(this->element->style->left, this->element->style->top);
     sf::Vector2f size(
-        this->context->mode->width - (this->left * 2),
-        this->context->mode->height - (this->top * 2));
+        this->context->mode->width - (this->element->style->left * 2),
+        this->context->mode->height - (this->element->style->top * 2));
 
     sf::RectangleShape rect(size);
 

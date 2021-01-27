@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "../context.h"
+#include "../types.h"
 #include "html_element.h"
 
 class HTMLTitle : public HTMLElement {

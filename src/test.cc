@@ -3,5 +3,5 @@
 int main() {
     GumboNode node;
 
-    node.
+    GUMBO_TAG_H1
 }

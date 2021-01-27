@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "context.h"
+#include "types.h"
 
 size_t handle_read(char* buffer, size_t size, size_t nitems, Info* info) {
     memcpy(info->data + info->currentSize, buffer, (size * nitems));
@@ -12,7 +12,7 @@ size_t handle_read(char* buffer, size_t size, size_t nitems, Info* info) {
     info->currentSize += size * nitems;
 
     if (info->currentSize == info->totalSize) {
-        info->callback(info->ctx, info->data, info->currentSize);
+        info->callback(info->ctx, info->data, info->currentSize, info->userData);
     }
 
     return size * nitems;
@@ -32,12 +32,13 @@ size_t handle_headers(char *buffer, size_t size, size_t nitems, Info* info) {
     return size * nitems;
 }
 
-void fetch_data(Context* ctx, char* url, READ_CALLBACK callback) {
+void fetch_data(Context* ctx, char* url, void* userData, READ_CALLBACK callback) {
     printf("Fetching %s\n", url);
 
     Info info;
     info.ctx = ctx;
     info.callback = callback;
+    info.userData = userData;
 
     CURL* curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_URL, url);
