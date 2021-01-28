@@ -5,9 +5,9 @@
 
 class HTMLH1 : public HTMLHX {
     public:
-        HTMLH1(Context* ctx,HTMLElement* element);
+        HTMLH1(Context* ctx, std::shared_ptr<HTMLElement> element);
 };
 
-HTMLH1::HTMLH1(Context* ctx,HTMLElement* element):HTMLHX(52, ctx, element) {
+HTMLH1::HTMLH1(Context* ctx, std::shared_ptr<HTMLElement> element):HTMLHX(100, ctx, element) {
 
 }

@@ -15,3 +15,8 @@ src/main.cc \
 -I/usr/local/Cellar/curl/7.74.0/include \
 -I/usr/local/Cellar/sfml/2.5.1/include \
 -o main
+
+
+
+
+

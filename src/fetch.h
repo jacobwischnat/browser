@@ -32,8 +32,8 @@ size_t handle_headers(char *buffer, size_t size, size_t nitems, Info* info) {
     return size * nitems;
 }
 
-void fetch_data(Context* ctx, char* url, void* userData, READ_CALLBACK callback) {
-    printf("Fetching %s\n", url);
+void fetch_data(Context* ctx, std::string url, void* userData, READ_CALLBACK callback) {
+    printf("Fetching %s\n", url.c_str());
 
     Info info;
     info.ctx = ctx;
@@ -41,7 +41,7 @@ void fetch_data(Context* ctx, char* url, void* userData, READ_CALLBACK callback)
     info.userData = userData;
 
     CURL* curl = curl_easy_init();
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handle_read);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, handle_headers);

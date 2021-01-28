@@ -2,25 +2,14 @@
 
 #include <SFML/Graphics.hpp>
 
-typedef unsigned long ELEMENT_KEY;
-
-typedef struct {
-    int width;
-    int height;
-} Mode;
+#include "context.h"
+#include "html/html_element.h"
 
 typedef struct {
     ELEMENT_KEY parent;
     ELEMENT_KEY previousSibling;
+    GumboNode* node;
 } Tracking;
-
-typedef struct {
-    CURL* curl;
-    sf::RenderWindow* window;
-    // sf::VideoMode* mode;
-    Mode* mode;
-    std::map<ELEMENT_KEY,void*>* elements;
-} Context;
 
 typedef void (*READ_CALLBACK)(Context*, char*, size_t, void*);
 

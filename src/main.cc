@@ -6,9 +6,12 @@
 #include <stdio.h>
 #include <gumbo.h>
 #include <uv.h>
+#include <locale>
+#include <vector>
 
 #include "main.h"
 #include "fetch.h"
+#include "context.h"
 #include "types.h"
 #include "html/html.h"
 
@@ -29,168 +32,270 @@ GumboAttribute* find_attribute(GumboNode* node, const char* name) {
 }
 
 ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMENT_KEY previous) {
-    printf("parent %lu previous %lu\n", parent, previous);
+    auto elements = (std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>>*) ctx->elements;
     switch (node->type) {
         case GUMBO_NODE_ELEMENT:
             {
+                printf("%d\n", node->v.element.tag);
                 switch (node->v.element.tag) {
-                    case GUMBO_TAG_H1:
+                    case GUMBO_TAG_HR:
                     {
-                        HTMLElement element(ctx);
-                        HTMLH1 hElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        element->setParent(parent);
+                        element->setPreviousSibling(previous);
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
-                        element.type = GUMBO_TAG_H1;
-                        element.extended = (void*) &hElement;
-                        element.previousSibling = previous;
+                        auto hrElement = HTMLHR(ctx, element);
+                        element->extended = (void*) &hrElement;
+
+                        hrElement.draw();
+
+                        elements->insert({element->id, element});
+
+                        return element->id;
+                    }
+                    break;
+
+                    case GUMBO_TAG_LI:
+                    {
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        element->setParent(parent);
+                        element->setPreviousSibling(previous);
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
                         auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
 
                         if(textNode->type == GUMBO_NODE_TEXT) {
-                            std::string stype("HTMLH1");
+                            std::string txt(textNode->v.text.text);
+                            std::wstring text(txt.begin(), txt.end());
+
+                            HTMLLI liElement(ctx, element);
+                            element->extended = (void*) &liElement;
+
+                            liElement.setText(&text);
+                            liElement.draw();
+
+                            elements->insert({element->id, element});
+                        }
+
+                        return element->id;
+                    }
+                    break;
+
+                    case GUMBO_TAG_UL:
+                    {
+                        printf("UL\n");
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        element->type = GUMBO_TAG_UL;
+                        element->setParent(parent);
+                        element->setPreviousSibling(previous);
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
+                        element->display();
+
+                        HTMLUL ulElement(ctx, element);
+                        element->extended = (void*) &ulElement;
+
+                        ulElement.draw();
+
+                        elements->insert({element->id, element});
+
+                        auto children = new GumboVector(node->v.element.children);
+                        ELEMENT_KEY last = previous;
+                        if (node->v.element.children.length > 0) {
+                            for (int i = 0; i < children->length; i += 1) {
+                                ELEMENT_KEY newLast = handle_dom(
+                                    ctx,
+                                    static_cast<GumboNode*>(children->data[i]),
+                                    element->id,
+                                    last);
+
+                                if (newLast) element->appendElement(newLast);
+                                if (newLast && i < children->length ) last = newLast;
+                            }
+                        }
+
+                        return element->id;
+                    }
+                    break;
+
+                    case GUMBO_TAG_BR:
+                    {
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        element->setSize(500, 18);
+                        element->setParent(parent);
+                        element->setPreviousSibling(previous);
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
+                        element->display();
+
+                        elements->insert({element->id, element});
+
+                        return element->id;
+                    }
+                    break;
+
+                    case GUMBO_TAG_H1:
+                    {
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLH1 hElement(ctx, element);
+
+                        element->type = GUMBO_TAG_H1;
+                        element->extended = (void*) &hElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
+
+                        auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
+
+                        if(textNode->type == GUMBO_NODE_TEXT) {
                             std::string text(textNode->v.text.text);
 
-                            element.setParent(parent);
+                            element->setParent(parent);
                             hElement.setText(&text);
                             hElement.draw();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            elements->insert({element->id, element});
                         }
 
-                        return element.id;
+                        return element->id;
                     }
                     break;
 
                     case GUMBO_TAG_H2:
                     {
-                        HTMLElement element(ctx);
-                        HTMLH2 hElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLH2 hElement(ctx, element);
 
-                        element.type = GUMBO_TAG_H2;
-                        element.extended = (void*) &hElement;
-                        element.previousSibling = previous;
+                        element->type = GUMBO_TAG_H2;
+                        element->extended = (void*) &hElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
                         auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
 
                         if(textNode->type == GUMBO_NODE_TEXT) {
-                            std::string stype("HTMLH2");
                             std::string text(textNode->v.text.text);
 
-                            element.setParent(parent);
+                            element->setParent(parent);
                             hElement.setText(&text);
                             hElement.draw();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            elements->insert({element->id, element});
                         }
 
-                        return element.id;
+                        return element->id;
                     }
                     break;
 
                     case GUMBO_TAG_H3:
                     {
-                        HTMLElement element(ctx);
-                        HTMLH3 hElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLH3 hElement(ctx, element);
 
-                        element.type = GUMBO_TAG_H3;
-                        element.extended = (void*) &hElement;
-                        element.previousSibling = previous;
+                        element->type = GUMBO_TAG_H3;
+                        element->extended = (void*) &hElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
                         auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
 
                         if(textNode->type == GUMBO_NODE_TEXT) {
-                            std::string stype("HTMLH3");
-                            printf("%s\n", stype.c_str());
                             std::string text(textNode->v.text.text);
 
-                            element.setParent(parent);
+                            element->setParent(parent);
                             hElement.setText(&text);
                             hElement.draw();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            elements->insert({element->id, element});
                         }
 
-                        return element.id;
+                        return element->id;
                     }
                     break;
 
                     case GUMBO_TAG_H4:
                     {
-                        HTMLElement element(ctx);
-                        HTMLH4 hElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLH4 hElement(ctx, element);
 
-                        element.type = GUMBO_TAG_H4;
-                        element.extended = (void*) &hElement;
-                        element.previousSibling = previous;
+                        element->type = GUMBO_TAG_H4;
+                        element->extended = (void*) &hElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
                         auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
 
                         if(textNode->type == GUMBO_NODE_TEXT) {
-                            std::string stype("HTMLH4");
-                            printf("%s\n", stype.c_str());
                             std::string text(textNode->v.text.text);
 
-                            element.setParent(parent);
+                            element->setParent(parent);
                             hElement.setText(&text);
                             hElement.draw();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            elements->insert({element->id, element});
                         }
 
-                        return element.id;
+                        return element->id;
                     }
                     break;
 
                     case GUMBO_TAG_H5:
                     {
-                        HTMLElement element(ctx);
-                        HTMLH5 hElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLH5 hElement(ctx, element);
 
-                        element.type = GUMBO_TAG_H5;
-                        element.extended = (void*) &hElement;
-                        element.previousSibling = previous;
+                        element->type = GUMBO_TAG_H5;
+                        element->extended = (void*) &hElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
                         auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
 
                         if(textNode->type == GUMBO_NODE_TEXT) {
-                            std::string stype("HTMLH5");
-                            printf("%s\n", stype.c_str());
                             std::string text(textNode->v.text.text);
 
-                            element.setParent(parent);
+                            element->setParent(parent);
                             hElement.setText(&text);
                             hElement.draw();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            elements->insert({element->id, element});
                         }
 
-                        return element.id;
+                        return element->id;
                     }
                     break;
 
                     case GUMBO_TAG_H6:
                     {
-                        HTMLElement element(ctx);
-                        HTMLH6 hElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLH6 hElement(ctx, element);
 
-                        element.type = GUMBO_TAG_H6;
-                        element.extended = (void*) &hElement;
-                        element.previousSibling = previous;
+                        element->type = GUMBO_TAG_H6;
+                        element->extended = (void*) &hElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
 
                         auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
 
                         if(textNode->type == GUMBO_NODE_TEXT) {
-                            std::string stype("HTMLH6");
-                            printf("%s\n", stype.c_str());
                             std::string text(textNode->v.text.text);
 
-                            element.setParent(parent);
+                            element->setParent(parent);
                             hElement.setText(&text);
                             hElement.draw();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            elements->insert({element->id, element});
                         }
 
-                        return element.id;
+                        return element->id;
                     }
                     break;
 
@@ -198,7 +303,6 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
                     case GUMBO_TAG_HEAD:
                     {
                         auto children = new GumboVector(node->v.element.children);
-                        // printf("No of children is %d\n", children->length);
 
                         ELEMENT_KEY last = 0;
                         if (node->v.element.children.length > 0) {
@@ -211,18 +315,19 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
 
                     case GUMBO_TAG_BODY:
                     {
-                        std::string stype("HTMLBody");
-                        HTMLElement element(ctx);
-                        HTMLBody bodyElement(ctx, &element);
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        HTMLBody bodyElement(ctx, element);
 
-                        element.type = GUMBO_TAG_BODY;
-                        element.extended = (void*) &bodyElement;
-                        element.previousSibling = previous;
+                        element->type = GUMBO_TAG_BODY;
+                        element->extended = (void*) &bodyElement;
+                        element->previousSibling = previous;
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
+                        element->setParent(parent);
 
-                        element.setParent(parent);
                         bodyElement.draw();
 
-                        ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                        elements->insert({element->id, element});
 
                         auto children = new GumboVector(node->v.element.children);
 
@@ -232,7 +337,7 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
                                 ELEMENT_KEY newLast = handle_dom(
                                     ctx,
                                     static_cast<GumboNode*>(children->data[i]),
-                                    element.id,
+                                    element->id,
                                     last);
 
                                 if (newLast && i < children->length ) last = newLast;
@@ -250,30 +355,31 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
                         Tracking* tracking = (Tracking*) calloc(1, sizeof(Tracking));
                         tracking->parent = parent;
                         tracking->previousSibling = previous;
+                        tracking->node = node;
 
                         fetch_data(
                             ctx,
-                            strcat(HOST, attr->value),
+                            std::string(HOST) + std::string(attr->value),
                             (void*) tracking,
                             static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
-                            std::string stype("HTMLImage");
-                            HTMLElement element(ctx);
-                            HTMLImage htmlImage(ctx, &element);
+                            auto element = std::make_shared<HTMLElement>(ctx);
+                            HTMLImage htmlImage(ctx, element);
 
                             Tracking* tracking = (Tracking*) userData;
 
-                            printf("tracking->parent = %lu\n", tracking->parent);
-                            printf("tracking->previousSibling = %lu\n", tracking->previousSibling);
-
-                            element.type = GUMBO_TAG_IMG;
-                            element.extended = (void*) &htmlImage;
-                            element.previousSibling = tracking->previousSibling;
-                            element.setParent(tracking->parent);
+                            element->type = GUMBO_TAG_IMG;
+                            element->extended = (void*) &htmlImage;
+                            element->previousSibling = tracking->previousSibling;
+                            element->setParent(tracking->parent);
+                            auto attributes = std::make_shared<GumboVector>(tracking->node->v.element.attributes);
+                            element->setAttributes(attributes);
 
                             htmlImage.setImageData(buffer, size);
                             htmlImage.display();
 
-                            ctx->elements->insert(std::pair<ELEMENT_KEY,void*>(element.id,(void*) &element));
+                            std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>>* elements = (std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>>*) ctx->elements;
+
+                            elements->insert({element->id, element});
                         }));
                     }
                     break;
@@ -292,23 +398,25 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
 }
 
 int main(int argc, char** argv) {
-    // auto mode = sf::VideoMode::getDesktopMode();
+    auto mode = sf::VideoMode::getDesktopMode();
 
-    Mode mode;
-    mode.width = 1024;
-    mode.height = 768;
+    std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>> elements;
 
-    std::map<ELEMENT_KEY,void*> elements;
-
-    sf::RenderWindow window(sf::VideoMode(mode.width, mode.height), "Browser Window"); //, sf::Style::Fullscreen);
+    sf::RenderWindow window(
+        sf::VideoMode(mode.width, mode.height),
+        "Browser Window"); //,
+        // sf::Style::Fullscreen);
 
     Context* ctx = (Context*) malloc(sizeof(Context));
     ctx->mode = &mode;
     ctx->window = &window;
-    ctx->elements = &elements;
+    ctx->elements = (void*) &elements;
     ctx->window->clear(sf::Color::White);
+    ctx->window->setFramerateLimit(60);
 
-    fetch_data(ctx, HOST, NULL, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
+    // sfg::SFGUI sfgui;
+
+    fetch_data(ctx, HOST, &elements, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
         handle_dom(ctx, gumbo_parse(buffer)->root, 0, 0);
         ctx->window->display();
     }));

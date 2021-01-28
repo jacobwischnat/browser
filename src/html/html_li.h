@@ -3,50 +3,59 @@
 #include <SFML/Graphics.hpp>
 
 #include "../types.h"
-// #include "../style/type"
 #include "html_element.h"
 
-class HTMLHX {
+class HTMLLI {
     public:
         Context* context;
         std::shared_ptr<HTMLElement> element;
 
         unsigned int fontSize;
 
-        std::string text;
+        std::wstring text;
+        std::wstring decorator;
 
         void draw();
-        void setText(std::string* text);
+        void setText(std::wstring* text);
+        void setDecorate(std::wstring* decorator);
         void setFontSize(unsigned int fontSize);
         void setFontFamily(std::string fontFamily);
 
-        HTMLHX(unsigned int fontSize, Context*, std::shared_ptr<HTMLElement> element);
+        HTMLLI(Context*, std::shared_ptr<HTMLElement> element);
 };
 
-HTMLHX::HTMLHX(unsigned int fontSize, Context* ctx, std::shared_ptr<HTMLElement> element) {
+HTMLLI::HTMLLI(Context* ctx, std::shared_ptr<HTMLElement> element) {
+    this->decorator = std::wstring(L"\u2022 ");
+    // std::shared_ptr<std::wstring> decorator;
     this->context = ctx;
     this->element = element;
     this->element->setPosition(0, 0);
     this->element->setMargin(20, 20, 0, 0);
-    this->element->setSize(this->context->mode->width, fontSize);
+    this->element->setSize(this->context->mode->width, 40);
 
-    this->setFontSize(fontSize);
+    // printf("%ls\n", decorator->c_str());
+
+    this->setFontSize(40);
 };
 
-void HTMLHX::setText(std::string* text) {
+void HTMLLI::setText(std::wstring* text) {
     this->text = *(text);
 }
 
-void HTMLHX::setFontFamily(std::string fontFamily) {
+void HTMLLI::setDecorate(std::wstring* decorator) {
+    this->decorator = *(decorator);
+}
+
+void HTMLLI::setFontFamily(std::string fontFamily) {
     this->element->style->fontFamily = fontFamily;
 }
 
-void HTMLHX::setFontSize(unsigned int fontSize) {
+void HTMLLI::setFontSize(unsigned int fontSize) {
     this->element->style->fontSize = fontSize;
     this->element->style->height = fontSize;
 }
 
-void HTMLHX::draw() {
+void HTMLLI::draw() {
     int parentMarginLeft = 0;
     if (this->element->parent) {
         auto hasParent = this->element->elements()->contains(this->element->parent);
@@ -55,11 +64,10 @@ void HTMLHX::draw() {
             auto parentElementPair = this->element->elements()->find(this->element->parent);
             std::shared_ptr<HTMLElement> element(parentElementPair->second);
 
+            parentMarginLeft = element->style->marginLeft;
+
             // TODO: This will have to change depending on style->display / style->position.
             this->element->style->left = element->style->left;
-            this->element->style->top = element->style->top + element->style->height;
-
-            parentMarginLeft = element->style->marginLeft;
         }
     }
 
@@ -70,22 +78,25 @@ void HTMLHX::draw() {
             auto prevSiblingElementPair = this->element->elements()->find(this->element->previousSibling);
             std::shared_ptr<HTMLElement> element(prevSiblingElementPair->second);
 
-            this->element->style->top += element->style->top + element->style->height;
+            this->element->style->top = element->style->top + element->style->height;
         }
     }
+
+    printf("parentMarginLeft = %d\n", parentMarginLeft);
 
     sf::Text text;
     sf::Font font;
     sf::Vector2f pos(
-        this->element->style->left + this->element->style->marginLeft + parentMarginLeft,
-        this->element->style->top + (this->element->previousSibling ? this->element->style->marginTop : 0));
-    sf::String sfstring(this->text);
-    std::string path = "fonts/" + this->element->style->fontFamily + "-Black.ttf";
+        (this->element->style->left + this->element->style->marginLeft + parentMarginLeft),
+        this->element->style->top + this->element->style->marginTop);
+
+    auto wtext = this->decorator + L" " + this->text;
+    sf::String sfstring(wtext);
+    std::string path = "fonts/" + this->element->style->fontFamily + "-Light.ttf";
     font.loadFromFile(path);
 
     text.setCharacterSize(this->element->style->fontSize);
     text.setFillColor(sf::Color::Black);
-    text.setStyle(sf::Text::Bold);
     text.setString(sfstring);
     text.setPosition(pos);
     text.setFont(font);
