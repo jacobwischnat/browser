@@ -1,7 +1,8 @@
 #pragma once
 
 enum CSSUnitType {
-    CSS_UNIT_TYPE_PX = 1,
+    CSS_UNIT_TYPE_UNKNOWN,
+    CSS_UNIT_TYPE_PX,
     CSS_UNIT_TYPE_EM,
     CSS_UNIT_TYPE_REM
 };

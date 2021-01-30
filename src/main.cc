@@ -2,6 +2,7 @@
 #include <SFML/Network.hpp>
 
 #include <functional>
+#include <gtk/gtk.h>
 #include <strings.h>
 #include <stdio.h>
 #include <gumbo.h>
@@ -14,6 +15,7 @@
 #include "context.h"
 #include "types.h"
 #include "html/html.h"
+#include "ui/treeview.h"
 
 char HOST[] = "http://127.0.0.1:8080/";
 
@@ -400,10 +402,36 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
 int main(int argc, char** argv) {
     auto mode = sf::VideoMode::getDesktopMode();
 
+    gtk_init(&argc, &argv);
+
+    int columns = 2;
+    GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    // GtkWidget *list = gtk_tree_view_new();
+    GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+    // gtk_box_pack_start(GTK_BOX(vbox), list, TRUE, TRUE, 2);
+    gtk_window_set_title(GTK_WINDOW(win), "Browser - Network Stats");
+    gtk_window_set_default_size(GTK_WINDOW(win), 300, 300);
+    // gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);
+
+    TreeView tv;
+    tv.addColumn("Meow", G_TYPE_STRING);
+    tv.addColumn("Woof", G_TYPE_STRING);
+    int rowId = tv.createRow();
+    tv.addRowData(rowId, "Kitteh?", 0);
+    tv.addRowData(rowId, "Dogo?", 1);
+    tv.insertRow(rowId);
+    tv.attachToVbox(vbox);
+    tv.update();
+
+    gtk_container_add(GTK_CONTAINER(win), vbox);
+    gtk_widget_show_all(win);
+
+
     std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>> elements;
 
     sf::RenderWindow window(
-        sf::VideoMode(mode.width, mode.height),
+        sf::VideoMode(1280, 720),
+        // sf::VideoMode(mode.width, mode.height),
         "Browser Window"); //,
         // sf::Style::Fullscreen);
 
@@ -419,7 +447,10 @@ int main(int argc, char** argv) {
     fetch_data(ctx, HOST, &elements, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
         handle_dom(ctx, gumbo_parse(buffer)->root, 0, 0);
         ctx->window->display();
+        ctx->window->display();
     }));
+
+    std::string command;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -427,6 +458,45 @@ int main(int argc, char** argv) {
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
+
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code < 26) {
+                    command.push_back(event.key.code + (event.key.shift ? 65 : 97));
+                } else {
+                    switch (event.key.code) {
+                        case 50:
+                        command = command + ".";
+                        break;
+
+                        case 58:
+                        if (!command.starts_with("https://")) {
+                            command = "https://" + command;
+                        }
+                        printf("Command: %s\n", command.c_str());
+                        break;
+
+                        default:
+                        printf("KeyPressed: %d\n", event.key.code);
+                    }
+                }
+            }
+
+            sf::Text text;
+            sf::Font font;
+            sf::Vector2f pos(100, 100);
+            sf::String sfstring(command);
+            std::string path = "fonts/Roboto-Light.ttf";
+            font.loadFromFile(path);
+
+            text.setCharacterSize(90);
+            text.setFillColor(sf::Color::Black);
+            text.setStyle(sf::Text::Bold);
+            text.setString(sfstring);
+            text.setPosition(pos);
+            text.setFont(font);
+
+            window.draw(text);
+            window.display();
         }
     }
 

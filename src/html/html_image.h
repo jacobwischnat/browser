@@ -33,7 +33,10 @@ void HTMLImage::display() {
     auto tagName = std::make_shared<std::string>("style");
     auto style = this->element->findAttribute(tagName);
 
-    if (style) this->element->style->apply(std::string(style->value));
+    if (style) {
+        printf("style = %s\n", style->value);
+        this->element->style->apply(std::string(style->value));
+    }
 
     int parentMarginLeft = 0;
     if (this->element->parent) {
@@ -69,6 +72,9 @@ void HTMLImage::display() {
     auto loadResult = image.loadFromMemory(this->data, this->size);
     auto size = image.getSize();
 
+    texture.create(this->element->style->width, size.y);
+
+    // auto rect = sf::IntRect(0, 0, size.x, size.y);
     auto rect = sf::IntRect(0, 0, size.x, size.y);
     texture.loadFromImage(image, rect);
 
