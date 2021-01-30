@@ -410,27 +410,51 @@ int main(int argc, char** argv) {
     GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
     // gtk_box_pack_start(GTK_BOX(vbox), list, TRUE, TRUE, 2);
     gtk_window_set_title(GTK_WINDOW(win), "Browser - Network Stats");
-    gtk_window_set_default_size(GTK_WINDOW(win), 300, 300);
+    gtk_window_set_default_size(GTK_WINDOW(win), 500, 300);
     // gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);
 
     TreeView tv;
-    tv.addColumn("Meow", G_TYPE_STRING);
-    tv.addColumn("Woof", G_TYPE_STRING);
-    int rowId = tv.createRow();
-    tv.addRowData(rowId, "Kitteh?", 0);
-    tv.addRowData(rowId, "Dogo?", 1);
-    tv.insertRow(rowId);
-    tv.attachToVbox(vbox);
+    tv.addColumn("Method", G_TYPE_STRING);
+    tv.addColumn("Host", G_TYPE_STRING);
+    tv.addColumn("IP", G_TYPE_STRING);
+    tv.addColumn("Path", G_TYPE_STRING);
+    tv.addColumn("Status", G_TYPE_STRING);
+    tv.addColumn("Type", G_TYPE_STRING);
+    tv.addColumn("Size", G_TYPE_STRING);
+    int rowId = 0; //tv.createRow();
+
+    std::vector<std::string> data0;
+    data0.push_back(std::string("GET"));
+    data0.push_back(std::string("www.theage.com"));
+    data0.push_back(std::string("10.12.3.4"));
+    data0.push_back(std::string("/article/21"));
+    data0.push_back(std::string("200 OK"));
+    data0.push_back(std::string("text/html"));
+    data0.push_back(std::string("14975"));
+
+    std::vector<std::string> data1;
+    data1.push_back(std::string("GET"));
+    data1.push_back(std::string("www.theage.com"));
+    data1.push_back(std::string("10.12.3.4"));
+    data1.push_back(std::string("cats.png"));
+    data1.push_back(std::string("200 OK"));
+    data1.push_back(std::string("image/png"));
+    data1.push_back(std::string("339399"));
+
+    tv.insertRow(data0);
+    tv.insertRow(data1);
     tv.update();
+    tv.attachToVbox(vbox);
 
     gtk_container_add(GTK_CONTAINER(win), vbox);
     gtk_widget_show_all(win);
 
+    // gtk_main();
 
     std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>> elements;
 
     sf::RenderWindow window(
-        sf::VideoMode(1280, 720),
+        sf::VideoMode(1280, 1280),
         // sf::VideoMode(mode.width, mode.height),
         "Browser Window"); //,
         // sf::Style::Fullscreen);
@@ -447,7 +471,7 @@ int main(int argc, char** argv) {
     fetch_data(ctx, HOST, &elements, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
         handle_dom(ctx, gumbo_parse(buffer)->root, 0, 0);
         ctx->window->display();
-        ctx->window->display();
+        // ctx->window->display();
     }));
 
     std::string command;
@@ -481,22 +505,22 @@ int main(int argc, char** argv) {
                 }
             }
 
-            sf::Text text;
-            sf::Font font;
-            sf::Vector2f pos(100, 100);
-            sf::String sfstring(command);
-            std::string path = "fonts/Roboto-Light.ttf";
-            font.loadFromFile(path);
+            // sf::Text text;
+            // sf::Font font;
+            // sf::Vector2f pos(100, 100);
+            // sf::String sfstring(command);
+            // std::string path = "fonts/Roboto-Light.ttf";
+            // font.loadFromFile(path);
 
-            text.setCharacterSize(90);
-            text.setFillColor(sf::Color::Black);
-            text.setStyle(sf::Text::Bold);
-            text.setString(sfstring);
-            text.setPosition(pos);
-            text.setFont(font);
+            // text.setCharacterSize(90);
+            // text.setFillColor(sf::Color::Black);
+            // text.setStyle(sf::Text::Bold);
+            // text.setString(sfstring);
+            // text.setPosition(pos);
+            // text.setFont(font);
 
-            window.draw(text);
-            window.display();
+            // window.draw(text);
+            // window.display();
         }
     }
 

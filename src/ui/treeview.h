@@ -16,8 +16,7 @@ class TreeView {
         void addColumn(std::string, GType);
 
         int createRow();
-        void insertRow(int rowId);
-        void addRowData(int rowId, const char* value, int column);
+        void insertRow(std::vector<std::string> values);
 
         TreeView();
 };
@@ -38,7 +37,7 @@ void TreeView::addColumn(std::string title, GType type) {
     GtkTreeViewColumn* column = gtk_tree_view_column_new();
     gtk_tree_view_column_set_title(column, title.c_str());
     gtk_tree_view_column_pack_start(column, this->renderer, false);
-    gtk_tree_view_column_add_attribute(column, this->renderer, title.c_str(), this->columns.size());
+    gtk_tree_view_column_add_attribute(column, this->renderer, "text", this->columns.size());
     gtk_tree_view_append_column(GTK_TREE_VIEW(this->list), column);
 
     std::tuple<GtkTreeViewColumn*, GType> tuple(column, type);
@@ -51,15 +50,10 @@ void TreeView::addColumn(std::string title, GType type) {
         GType gtype;
         std::tie(std::ignore, gtype) = tup;
 
-        printf("gtype = %lu\n", gtype);
-
         gtypes[i] = gtype;
 
         i++;
     }
-
-    printf("this->store = %p\n", this->store);
-    printf("columns count: %lu\n", this->columns.size());
 
     gtk_list_store_set_column_types(
         this->store,
@@ -87,14 +81,14 @@ int TreeView::createRow() {
     return rowId;
 }
 
-void TreeView::addRowData(int rowId, const char* value, int column) {
-    GtkTreeIter* row = this->rows[rowId];
-    gtk_list_store_set_value(this->store, row, column, (GValue*) value);
-}
+void TreeView::insertRow(std::vector<std::string> values) {
+    GtkTreeIter row;
+    gtk_list_store_append(this->store, &row);
 
-void TreeView::insertRow(int rowId) {
-    GtkTreeIter* row = this->rows[rowId];
-    va_list args;
-    gtk_list_store_set_valist(this->store, row, args);
-    gtk_list_store_append(this->store, row);
+    int column = 0;
+    for (auto const& value : values) {
+        gtk_list_store_set(this->store, &row, column, value.c_str(), -1);
+
+        column++;
+    }
 }
