@@ -4,20 +4,25 @@
 #include <functional>
 #include <gtk/gtk.h>
 #include <strings.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <gumbo.h>
 #include <uv.h>
 #include <locale>
 #include <vector>
+#include <thread>
 
 #include "main.h"
 #include "fetch.h"
 #include "context.h"
 #include "types.h"
+#include "network.h"
 #include "html/html.h"
 #include "ui/treeview.h"
+#include "ui/entry.h"
 
-char HOST[] = "http://127.0.0.1:8080/";
+// char HOST[] = "http://127.0.0.1:8080/";
+std::string HOST("http://127.0.0.1:8080/");
 
 GumboAttribute* find_attribute(GumboNode* node, const char* name) {
     auto attributes = new GumboVector(node->v.element.attributes);
@@ -38,8 +43,35 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
     switch (node->type) {
         case GUMBO_NODE_ELEMENT:
             {
-                printf("%d\n", node->v.element.tag);
                 switch (node->v.element.tag) {
+                    case GUMBO_TAG_A:
+                    {
+                        printf("LINK\n");
+                        auto element = std::make_shared<HTMLElement>(ctx);
+                        element->setParent(parent);
+                        element->setPreviousSibling(previous);
+                        auto attributes = std::make_shared<GumboVector>(node->v.element.attributes);
+                        element->setAttributes(attributes);
+
+
+                        auto textNode = static_cast<GumboNode*>(node->v.element.children.data[0]);
+
+                        if(textNode->type == GUMBO_NODE_TEXT) {
+                            std::string txt(textNode->v.text.text);
+
+                            auto aElement = HTMLA(ctx, element);
+                            element->extended = (void*) &aElement;
+
+                            aElement.setText(&txt);
+                            aElement.draw();
+
+                            elements->insert({element->id, element});
+                        }
+
+                        return element->id;
+                    }
+                    break;
+
                     case GUMBO_TAG_HR:
                     {
                         auto element = std::make_shared<HTMLElement>(ctx);
@@ -361,7 +393,7 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
 
                         fetch_data(
                             ctx,
-                            std::string(HOST) + std::string(attr->value),
+                            HOST + std::string(attr->value),
                             (void*) tracking,
                             static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
                             auto element = std::make_shared<HTMLElement>(ctx);
@@ -406,12 +438,9 @@ int main(int argc, char** argv) {
 
     int columns = 2;
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    // GtkWidget *list = gtk_tree_view_new();
     GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
-    // gtk_box_pack_start(GTK_BOX(vbox), list, TRUE, TRUE, 2);
     gtk_window_set_title(GTK_WINDOW(win), "Browser - Network Stats");
     gtk_window_set_default_size(GTK_WINDOW(win), 500, 300);
-    // gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);
 
     TreeView tv;
     tv.addColumn("Method", G_TYPE_STRING);
@@ -421,35 +450,60 @@ int main(int argc, char** argv) {
     tv.addColumn("Status", G_TYPE_STRING);
     tv.addColumn("Type", G_TYPE_STRING);
     tv.addColumn("Size", G_TYPE_STRING);
-    int rowId = 0; //tv.createRow();
+
+    Request request(HOST);
 
     std::vector<std::string> data0;
-    data0.push_back(std::string("GET"));
-    data0.push_back(std::string("www.theage.com"));
-    data0.push_back(std::string("10.12.3.4"));
-    data0.push_back(std::string("/article/21"));
-    data0.push_back(std::string("200 OK"));
-    data0.push_back(std::string("text/html"));
-    data0.push_back(std::string("14975"));
-
-    std::vector<std::string> data1;
-    data1.push_back(std::string("GET"));
-    data1.push_back(std::string("www.theage.com"));
-    data1.push_back(std::string("10.12.3.4"));
-    data1.push_back(std::string("cats.png"));
-    data1.push_back(std::string("200 OK"));
-    data1.push_back(std::string("image/png"));
-    data1.push_back(std::string("339399"));
-
+    data0.push_back(request.method);
+    data0.push_back(request.host);
+    data0.push_back(std::string(""));
+    data0.push_back(std::string(""));
+    data0.push_back(std::string(""));
+    data0.push_back(std::string(""));
+    data0.push_back(std::string(""));
     tv.insertRow(data0);
-    tv.insertRow(data1);
+
     tv.update();
-    tv.attachToVbox(vbox);
 
     gtk_container_add(GTK_CONTAINER(win), vbox);
+
+    Entry ent(HOST);
+
+    ent.attachToContainer(vbox);
+    tv.attachToContainer(vbox);
+
     gtk_widget_show_all(win);
 
-    // gtk_main();
+    auto callMe = [=]() {
+        // request.sendRequest();
+    };
+
+    std::thread reqThread(&Request::sendRequest, std::ref(request));
+    // request.sendRequest();
+
+    gtk_main_iteration_do(false);
+
+    reqThread.join();
+    printf("Thread joined..\n");
+
+    tv.deleteRow(0);
+    // tv.clear();
+
+    std::vector<std::string> data1;
+    data1.push_back(request.method);
+    data1.push_back(request.host);
+    data1.push_back(request.ip);
+    data1.push_back(request.path);
+    data1.push_back(request.status);
+    data1.push_back(request.contentType);
+    data1.push_back(request.size);
+    tv.insertRow(data1);
+
+    printf("Request body:\n%s\n", request.body.c_str());
+
+    gtk_main();
+
+    return 0;
 
     std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>> elements;
 
@@ -468,7 +522,7 @@ int main(int argc, char** argv) {
 
     // sfg::SFGUI sfgui;
 
-    fetch_data(ctx, HOST, &elements, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
+    fetch_data(ctx, HOST.c_str(), &elements, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
         handle_dom(ctx, gumbo_parse(buffer)->root, 0, 0);
         ctx->window->display();
         // ctx->window->display();
