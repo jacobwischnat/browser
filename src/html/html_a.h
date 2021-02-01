@@ -78,7 +78,7 @@ void HTMLA::draw() {
         this->element->style->left + this->element->style->marginLeft + parentMarginLeft,
         this->element->style->top + (this->element->previousSibling ? this->element->style->marginTop : 0));
     sf::String sfstring(this->text);
-    std::string path("fonts/Roboto-Black.ttf");
+    std::string path("fonts/OpenSans-Regular.ttf");
     font.loadFromFile(path);
 
     text.setCharacterSize(this->element->style->fontSize);

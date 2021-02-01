@@ -16,6 +16,7 @@ class TreeView {
         void addColumn(std::string, GType);
 
         void insertRow(std::vector<std::string> values);
+        void updateRow(int index, std::vector<std::string> values);
         void deleteRow(int index);
         void clear();
 
@@ -34,7 +35,6 @@ TreeView::TreeView() {
 }
 
 void TreeView::addColumn(std::string title, GType type) {
-    printf("%s %lu\n", title.c_str(), type);
     GtkTreeViewColumn* column = gtk_tree_view_column_new();
     gtk_tree_view_column_set_title(column, title.c_str());
     gtk_tree_view_column_pack_start(column, this->renderer, false);
@@ -70,6 +70,19 @@ void TreeView::attachToContainer(GtkWidget* container) {
 void TreeView::update() {
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(this->list), true);
     gtk_tree_view_set_model(GTK_TREE_VIEW(this->list), GTK_TREE_MODEL(this->store));
+}
+
+void TreeView::updateRow(int index, std::vector<std::string> values) {
+    GtkTreeIter iter;
+    GtkTreePath *path = gtk_tree_path_new_from_string(std::to_string(index).c_str());
+    gtk_tree_model_get_iter(GTK_TREE_MODEL(this->store), &iter, path);
+
+    int column = 0;
+    for (auto const& value : values) {
+        gtk_list_store_set(this->store, &iter, column, value.c_str(), -1);
+
+        column++;
+    }
 }
 
 void TreeView::insertRow(std::vector<std::string> values) {

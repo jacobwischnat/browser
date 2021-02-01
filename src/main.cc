@@ -1,5 +1,5 @@
 #include <SFML/Graphics.hpp>
-#include <SFML/Network.hpp>
+// #include <SFML/Network->hpp>
 
 #include <functional>
 #include <gtk/gtk.h>
@@ -22,7 +22,8 @@
 #include "ui/entry.h"
 
 // char HOST[] = "http://127.0.0.1:8080/";
-std::string HOST("http://127.0.0.1:8080/");
+// std::string HOST("http://127.0.0.1:8080/");
+std::string HOST("https://www.google.com/");
 
 GumboAttribute* find_attribute(GumboNode* node, const char* name) {
     auto attributes = new GumboVector(node->v.element.attributes);
@@ -434,6 +435,9 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
 int main(int argc, char** argv) {
     auto mode = sf::VideoMode::getDesktopMode();
 
+    auto network = std::make_shared<Network>();
+
+
     gtk_init(&argc, &argv);
 
     int columns = 2;
@@ -442,66 +446,109 @@ int main(int argc, char** argv) {
     gtk_window_set_title(GTK_WINDOW(win), "Browser - Network Stats");
     gtk_window_set_default_size(GTK_WINDOW(win), 500, 300);
 
-    TreeView tv;
-    tv.addColumn("Method", G_TYPE_STRING);
-    tv.addColumn("Host", G_TYPE_STRING);
-    tv.addColumn("IP", G_TYPE_STRING);
-    tv.addColumn("Path", G_TYPE_STRING);
-    tv.addColumn("Status", G_TYPE_STRING);
-    tv.addColumn("Type", G_TYPE_STRING);
-    tv.addColumn("Size", G_TYPE_STRING);
+    auto tv = std::make_shared<TreeView>();
+    tv->addColumn("Status", G_TYPE_STRING);
+    tv->addColumn("Method", G_TYPE_STRING);
+    tv->addColumn("Host", G_TYPE_STRING);
+    tv->addColumn("IP", G_TYPE_STRING);
+    tv->addColumn("Path", G_TYPE_STRING);
+    tv->addColumn("Status", G_TYPE_STRING);
+    tv->addColumn("Type", G_TYPE_STRING);
+    tv->addColumn("Size", G_TYPE_STRING);
 
-    Request request(HOST);
+    network->onRequest(static_cast<NET_REQUEST_CALLBACK_SIGNATURE>([tv](std::shared_ptr<Request> request, void* userData) {
+        std::vector<std::string> data0;
+        data0.push_back(std::string("Pending"));
+        data0.push_back(request->method);
+        data0.push_back(request->host);
+        data0.push_back(std::string(""));
+        data0.push_back(std::string(""));
+        data0.push_back(std::string(""));
+        data0.push_back(std::string(""));
+        data0.push_back(std::string(""));
+        tv->insertRow(data0);
+    }));
 
-    std::vector<std::string> data0;
-    data0.push_back(request.method);
-    data0.push_back(request.host);
-    data0.push_back(std::string(""));
-    data0.push_back(std::string(""));
-    data0.push_back(std::string(""));
-    data0.push_back(std::string(""));
-    data0.push_back(std::string(""));
-    tv.insertRow(data0);
+    network->onEvent(static_cast<NET_EVENT_CALLBACK_SIGNATURE>([tv,network](std::shared_ptr<Request> request, NET_EVENT event, void* userData) {
+        auto requestIndex = std::find(network->requests.begin(), network->requests.end(), request);
+        int rowIndex = requestIndex - network->requests.begin();
 
-    tv.update();
+        printf("rowIndex %d %s\n", rowIndex, request->path.c_str());
+
+        // tv->deleteRow(rowIndex);
+
+        std::string eventType("UNKNOWN");
+        std::string ip("");
+        std::string path("");
+        std::string status("");
+        std::string type("");
+        std::string size("");
+
+        switch (event) {
+            case NET_EVENT_RESOLVING_HOST:
+            eventType = std::string("RESOLVING");
+            break;
+
+            case NET_EVENT_CONNECTING:
+            eventType = std::string("CONNECTING");
+            ip = request->ip;
+            break;
+
+            case NET_EVENT_WRITING:
+            eventType = std::string("WRITING");
+            ip = request->ip;
+            break;
+
+            case NET_EVENT_READING:
+            eventType = std::string("READING");
+            ip = request->ip;
+            break;
+
+            case NET_EVENT_DONE:
+            eventType = std::string("DONE");
+            ip = request->ip;
+            path = request->path;
+            status = request->status;
+            type = request->contentType;
+            size = request->size;
+            break;
+        }
+
+        std::vector<std::string> data0;
+        data0.push_back(eventType);
+        data0.push_back(request->method);
+        data0.push_back(request->host);
+        data0.push_back(ip);
+        data0.push_back(path);
+        data0.push_back(status);
+        data0.push_back(type);
+        data0.push_back(size);
+        tv->updateRow(rowIndex, data0);
+    }));
+
+    network->makeRequest(HOST);
+    // network->makeRequest(HOST + "tux.png");
+    // network->makeRequest(HOST + "mario.png");
+    // network->makeRequest(HOST + "cap1.png");
+    // network->makeRequest(HOST + "cap2.png");
+    // network->makeRequest(HOST + "readme.md");
+
+    tv->update();
 
     gtk_container_add(GTK_CONTAINER(win), vbox);
 
     Entry ent(HOST);
 
     ent.attachToContainer(vbox);
-    tv.attachToContainer(vbox);
+    tv->attachToContainer(vbox);
 
     gtk_widget_show_all(win);
 
-    auto callMe = [=]() {
-        // request.sendRequest();
-    };
+    while (true) {
+        gtk_main_iteration_do(false);
 
-    std::thread reqThread(&Request::sendRequest, std::ref(request));
-    // request.sendRequest();
-
-    gtk_main_iteration_do(false);
-
-    reqThread.join();
-    printf("Thread joined..\n");
-
-    tv.deleteRow(0);
-    // tv.clear();
-
-    std::vector<std::string> data1;
-    data1.push_back(request.method);
-    data1.push_back(request.host);
-    data1.push_back(request.ip);
-    data1.push_back(request.path);
-    data1.push_back(request.status);
-    data1.push_back(request.contentType);
-    data1.push_back(request.size);
-    tv.insertRow(data1);
-
-    printf("Request body:\n%s\n", request.body.c_str());
-
-    gtk_main();
+        network->processTick();
+    }
 
     return 0;
 

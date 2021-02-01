@@ -92,7 +92,7 @@ void HTMLLI::draw() {
 
     auto wtext = this->decorator + L" " + this->text;
     sf::String sfstring(wtext);
-    std::string path = "fonts/" + this->element->style->fontFamily + "-Light.ttf";
+    std::string path = "fonts/" + this->element->style->fontFamily + "-Regular.ttf";
     font.loadFromFile(path);
 
     text.setCharacterSize(this->element->style->fontSize);

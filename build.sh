@@ -1,4 +1,6 @@
 clang++ \
+-Wno-everything \
+-pthread \
 -std=c++2a \
 src/main.cc \
 /usr/local/Cellar/gdk-pixbuf/2.42.2/lib/libgdk_pixbuf-2.0.dylib \

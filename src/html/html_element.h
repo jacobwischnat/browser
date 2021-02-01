@@ -51,7 +51,7 @@ class HTMLElement {
 };
 
 HTMLElement::HTMLElement(Context* ctx) {
-    std::string fontFamily("Roboto");
+    std::string fontFamily("OpenSans");
 
     auto style = std::make_shared<CSS>();
 
