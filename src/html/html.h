@@ -1,15 +1,36 @@
 #pragma once
 
-#include "html_a.h"
-#include "html_h1.h"
-#include "html_h2.h"
-#include "html_h3.h"
-#include "html_h4.h"
-#include "html_h5.h"
-#include "html_h6.h"
-#include "html_hr.h"
-#include "html_ul.h"
-#include "html_li.h"
-#include "html_body.h"
-#include "html_image.h"
-#include "html_title.h"
+#include <gumbo.h>
+
+#include "../network.h"
+
+#include "html_element.h"
+
+class HTMLParser {
+    public:
+        void parse(std::string document);
+        void handleNode(GumboNode* node);
+
+        HTMLParser(std::shared_ptr<Network>);
+
+    private:
+        std::shared_ptr<Network> network;
+};
+
+HTMLParser::HTMLParser(std::shared_ptr<Network> network) {
+    this->network = network;
+}
+
+void HTMLParser::handleNode(GumboNode* node) {
+    switch (node->type) {
+        case GUMBO_NODE_ELEMENT:
+            HTMLElement element(node);
+            break;
+    }
+}
+
+void HTMLParser::parse(std::string document) {
+    GumboOutput* output = gumbo_parse(document.c_str());
+
+    this->handleNode(output->root);
+}

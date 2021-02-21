@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <openssl/ssl.h>
 
+#include "helpers.h"
+
 enum NET_EVENT {
     NET_EVENT_NONE,
     NET_EVENT_RESOLVING_HOST,
@@ -20,6 +22,7 @@ enum NET_EVENT {
 
 class Request {
     public:
+        int id;
         bool isSecure;
 
         std::string contentType;
@@ -50,14 +53,15 @@ class Request {
         void queueEvent(NET_EVENT event);
         NET_EVENT readEvent();
 
-        Request(std::string);
+        Request(int id, std::string);
 
     private:
         int queueIndex;
         std::queue<NET_EVENT> messageQueue;
 };
 
-Request::Request(std::string url) {
+Request::Request(int id, std::string url) {
+    this->id = id;
     this->queueIndex = 0;
     std::queue<NET_EVENT>messageQueue;
     this->messageQueue = messageQueue;
@@ -182,10 +186,7 @@ void Request::sendRequest() {
 
     auto doRead = [=](int chunkSize) -> unsigned long {
         if (this->isSecure) {
-            printf("Waiting for chunk\n");
             auto res = (unsigned long) SSL_read(ssl, &this->responseData[this->responseSize], chunkSize);
-
-            printf("Got chunk\n");
 
             return res;
         }
@@ -235,9 +236,6 @@ void Request::sendRequest() {
             auto sizeBE = std::stol(strHex, nullptr, 16);
             auto sizeLE = (sizeBE >> 8) + ((sizeBE & 0xFF) << 8);
 
-            printf("BE: %X %d\n", sizeBE, sizeBE);
-            printf("LE: %X %d\n", sizeLE, sizeLE);
-
             return sizeBE;
         }
 
@@ -262,8 +260,6 @@ void Request::sendRequest() {
     while ((chunkSize = doRead(nextChunkSize)) > 0) {
         this->responseSize += chunkSize;
 
-        printf("%d\n", i);
-
         this->responseData = (char*) realloc(this->responseData, this->responseSize);
 
         if (haveHeaders == false) {
@@ -275,8 +271,6 @@ void Request::sendRequest() {
                 if (transferEncoding.compare("chunked") == 0) {
                     isChunked = true;
                 }
-
-                printf("Transfer Encoding is: %s\n", transferEncoding.c_str());
             }
 
             if (headers.find("content-length") != headers.end() ||
@@ -289,15 +283,9 @@ void Request::sendRequest() {
             if (isChunked) {
                 auto bodyOffset = findBodyOffset(std::string(this->responseData));
 
-                printf("body is: %s\n", &this->responseData[bodyOffset]);
-
                 chunkSize = getChunkSize(&this->responseData[bodyOffset]);
 
                 auto offset = getChunkDataOffset(&this->responseData[bodyOffset]) + bodyOffset;
-
-                printf("chunkSize = %d\n", chunkSize);
-                printf("offset = %d\n", offset);
-                printf("chunk body is: %s\n", &this->responseData[offset]);
 
                 nextChunkSize = chunkSize - strlen(&this->responseData[offset]);
 
@@ -306,21 +294,13 @@ void Request::sendRequest() {
         } else if (isChunked) {
             chunkSize = getChunkSize(&this->responseData[this->responseSize]);
 
-            printf("chunkSize = %d\n", chunkSize);
-            printf("chunk body is: %s\n", &this->responseData[this->responseSize]);
-
             if (chunkSize == 0) break;
         }
 
         this->responseData = (char*) realloc(this->responseData, nextChunkSize + this->responseSize);
 
-        printf("chunkSize = %d\n", chunkSize);
-
         i++;
-        // if (i > 3) break;
     }
-
-    printf("Done\n");
 
     close(sockFd);
 

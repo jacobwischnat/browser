@@ -1,75 +1,64 @@
 #pragma once
 
+#include <memory>
 #include <thread>
 #include <vector>
 #include <utility>
 #include <functional>
 
+#include "event.h"
 #include "request.h"
 
-#define NET_EVENT_CALLBACK_SIGNATURE        std::function<void(std::shared_ptr<Request>,NET_EVENT,void*)>
-#define NET_REQUEST_CALLBACK_SIGNATURE      std::function<void(std::shared_ptr<Request>,void*)>
+class NetworkEvent {
+    public:
+        NET_EVENT event;
+        std::shared_ptr<Request> request;
+
+        NetworkEvent(NET_EVENT, std::shared_ptr<Request>);
+};
+
+NetworkEvent::NetworkEvent(NET_EVENT event, std::shared_ptr<Request> request) {
+    this->event = event;
+    this->request = request;
+}
 
 class Network {
     public:
 
-        std::shared_ptr<Request> makeRequest(std::string url);
-
-        void onRequest(NET_REQUEST_CALLBACK_SIGNATURE);
-        void onRequest(NET_REQUEST_CALLBACK_SIGNATURE, void*);
-
-        void onEvent(NET_EVENT_CALLBACK_SIGNATURE);
-        void onEvent(NET_EVENT_CALLBACK_SIGNATURE, void*);
+        std::shared_ptr<Request> makeRequest(std::string url, std::function<void(std::shared_ptr<Request>)> callback);
 
         void processTick();
 
         std::vector<std::shared_ptr<Request>> requests;
 
+        EventEmitter<std::shared_ptr<Request>> eventsRequest;
+        EventEmitter<std::shared_ptr<Request>> eventsRequestComplete;
+        EventEmitter<std::shared_ptr<NetworkEvent>> eventsNetworkEvent;
+
         Network();
 
     private:
+        int nextRequestId;
         int requestIndex;
 
         std::vector<std::thread> threads;
-
-        std::vector<std::tuple<NET_EVENT_CALLBACK_SIGNATURE,void*>> onEventCallbacks;
-        std::vector<std::tuple<NET_REQUEST_CALLBACK_SIGNATURE,void*>> onRequestCallbacks;
 };
 
-std::shared_ptr<Request> Network::makeRequest(std::string url) {
-    auto request = new Request(url);
+std::shared_ptr<Request> Network::makeRequest(std::string url, std::function<void(std::shared_ptr<Request>)> callback) {
+    auto request = new Request(this->nextRequestId++, url);
+    request->addRequestHeader("Accept-Encoding", "identity");
 
     std::shared_ptr<Request> sharedRequest(request);
 
+    this->eventsRequestComplete.addListener([=](std::shared_ptr<Request> req, void*) { callback(req); }, NULL, EventOptOnce);
+
     this->requests.push_back(sharedRequest);
 
-    for (auto const& req : this->onRequestCallbacks) {
-        NET_REQUEST_CALLBACK_SIGNATURE callback;
-        void* userData;
-        std::tie(callback, userData) = req;
-
-        callback(sharedRequest, userData);
-    }
+    this->eventsRequest.emit(sharedRequest);
 
     this->threads.push_back(std::move(std::thread(&Request::sendRequest, sharedRequest)));
 
     return sharedRequest;
-}
-
-void Network::onEvent(NET_EVENT_CALLBACK_SIGNATURE callback) {
-    this->onEvent(callback, NULL);
-}
-
-void Network::onEvent(NET_EVENT_CALLBACK_SIGNATURE callback, void* userData) {
-    this->onEventCallbacks.push_back(std::make_tuple(callback, userData));
-}
-
-void Network::onRequest(NET_REQUEST_CALLBACK_SIGNATURE callback) {
-    this->onRequest(callback, NULL);
-}
-
-void Network::onRequest(NET_REQUEST_CALLBACK_SIGNATURE callback, void* userData) {
-    this->onRequestCallbacks.push_back(std::make_tuple(callback, userData));
 }
 
 void Network::processTick() {
@@ -79,15 +68,12 @@ void Network::processTick() {
     NET_EVENT event = request->readEvent();
 
     if (event) {
-        for (auto const& req : this->onEventCallbacks) {
-            NET_EVENT_CALLBACK_SIGNATURE callback;
-            void* userData;
-            std::tie(callback, userData) = req;
-
-            callback(request, event, userData);
-        }
+        std::shared_ptr<Request> sharedRequest(request);
+        auto netEvent = std::make_shared<NetworkEvent>(event, sharedRequest);
+        this->eventsNetworkEvent.emit(netEvent);
 
         if (event == NET_EVENT_DONE) {
+            this->eventsRequestComplete.emit(sharedRequest);
             this->threads[index].join();
         }
     }
@@ -98,12 +84,11 @@ void Network::processTick() {
 Network::Network() {
     this->requestIndex = 0;
 
-    // std::vector<std::thread> threads;
-    // this->threads = threads;
+    EventEmitter<std::shared_ptr<Request>> eventsRequest;
+    EventEmitter<std::shared_ptr<Request>> eventsRequestComplete;
+    EventEmitter<std::shared_ptr<NetworkEvent>> eventsNetworkEvent;
 
-    std::vector<std::shared_ptr<Request>> requests;
-    this->requests = requests;
-
-    std::vector<std::tuple<NET_REQUEST_CALLBACK_SIGNATURE,void*>> callbacks;
-    this->onRequestCallbacks = callbacks;
+    this->eventsRequest = eventsRequest;
+    this->eventsNetworkEvent = eventsNetworkEvent;
+    this->eventsRequestComplete = eventsRequestComplete;
 }

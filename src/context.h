@@ -8,7 +8,6 @@ typedef struct {
 } Mode;
 
 typedef struct {
-    CURL* curl;
     sf::RenderWindow* window;
     sf::VideoMode* mode;
     // Mode* mode;

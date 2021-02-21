@@ -80,7 +80,7 @@ void HTMLHX::draw() {
         this->element->style->left + this->element->style->marginLeft + parentMarginLeft,
         this->element->style->top + (this->element->previousSibling ? this->element->style->marginTop : 0));
     sf::String sfstring(this->text);
-    std::string path = "" + this->element->style->fontFamily + "-Black.ttf";
+    std::string path = "fonts/" + this->element->style->fontFamily + "-Black.ttf";
     font.loadFromFile(path);
 
     text.setCharacterSize(this->element->style->fontSize);

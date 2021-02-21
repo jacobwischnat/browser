@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <boost/algorithm/string/predicate.hpp>
 
 #include "types.h"
 #include "../helpers.h"
