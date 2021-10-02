@@ -1,3 +1,8 @@
+#include <gumbo.h>
+
+#include "html/html.h"
+
+typedef unsigned long ELEMENT_KEY;
 
 GumboAttribute* find_attribute(GumboNode* node, const char* name) {
     auto attributes = new GumboVector(node->v.element.attributes);
@@ -15,6 +20,7 @@ GumboAttribute* find_attribute(GumboNode* node, const char* name) {
 
 ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMENT_KEY previous) {
     auto elements = (std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>>*) ctx->elements;
+    /*
     switch (node->type) {
         case GUMBO_NODE_ELEMENT:
             {
@@ -402,6 +408,7 @@ ELEMENT_KEY handle_dom(Context* ctx, GumboNode* node, ELEMENT_KEY parent, ELEMEN
         default:
             return 0;
     }
+    */
 
     return 0;
 }

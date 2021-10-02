@@ -11,6 +11,7 @@
 #include <vector>
 #include <thread>
 
+#include "dom.h"
 #include "main.h"
 #include "event.h"
 #include "context.h"
@@ -52,15 +53,16 @@ int main(int argc, char** argv) {
     auto handleNewRequest = [=](std::shared_ptr<Request> request, void* userData) {
         printf("New Request: %s\n", request->host.c_str());
 
-        std::vector<std::string> data0;
-        data0.push_back(std::string("Pending"));
-        data0.push_back(request->method);
-        data0.push_back(request->host);
-        data0.push_back(std::string(""));
-        data0.push_back(std::string(""));
-        data0.push_back(std::string(""));
-        data0.push_back(std::string(""));
-        data0.push_back(std::string(""));
+        std::vector<std::string> data0{
+            std::string("Pending"),
+            request->method,
+            request->host,
+            std::string(""),
+            std::string(""),
+            std::string(""),
+            std::string(""),
+            std::string("")
+        };
         tv->insertRow(data0);
     };
 
@@ -110,15 +112,16 @@ int main(int argc, char** argv) {
                 return;
         }
 
-        std::vector<std::string> data0;
-        data0.push_back(eventType);
-        data0.push_back(event->request->method);
-        data0.push_back(event->request->host);
-        data0.push_back(ip);
-        data0.push_back(path);
-        data0.push_back(status);
-        data0.push_back(type);
-        data0.push_back(size);
+        std::vector<std::string> data0{
+            event->request->method,
+            eventType,
+            event->request->host,
+            ip,
+            path,
+            status,
+            type,
+            size
+        };
         tv->updateRow(rowIndex, data0);
     };
 
@@ -129,6 +132,12 @@ int main(int argc, char** argv) {
 
         htmlParser->parse(request->body);
     });
+    // network->makeRequest(HOST + "dogo.png", [=](std::shared_ptr<Request> request) {
+    //     printf("Request for %s is done...\n", request->host.c_str());
+    // });
+    // network->makeRequest(HOST + "cap1.png", [=](std::shared_ptr<Request> request) {
+    //     printf("Request for %s is done...\n", request->host.c_str());
+    // });
 
     tv->update();
 
@@ -147,8 +156,6 @@ int main(int argc, char** argv) {
         network->processTick();
     }
 
-    return 0;
-/*
     std::map<ELEMENT_KEY,std::shared_ptr<HTMLElement>> elements;
 
     sf::RenderWindow window(
@@ -165,7 +172,7 @@ int main(int argc, char** argv) {
     ctx->window->setFramerateLimit(60);
 
     // sfg::SFGUI sfgui;
-
+/*
     fetch_data(ctx, HOST.c_str(), &elements, static_cast<READ_CALLBACK>([](Context* ctx, char* buffer, size_t size, void* userData) {
         handle_dom(ctx, gumbo_parse(buffer)->root, 0, 0);
         ctx->window->display();
@@ -221,7 +228,6 @@ int main(int argc, char** argv) {
             // window.display();
         }
     }
-
+*/
     return 0;
-    */
 }

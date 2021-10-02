@@ -5,14 +5,14 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/local/Cellar/sfml/2.5.1/include",
-                "/usr/local/Cellar/curl/7.74.0/include",
                 "/usr/local/Cellar/gumbo-parser/0.10.1/include",
-                "/usr/local/Cellar/libuv/1.40.0/include",
-                "/usr/local/Cellar/gtk+/2.24.33/include"
+                "/usr/local/Cellar/gtk+/2.24.33/include",
+                "/usr/local/Cellar/openssl@1.1/1.1.1l/include",
+                "${workspaceFolder}/vendor/catch2/single_include"
             ],
             "defines": [],
             "macFrameworkPath": [],
-            "compilerPath": "/usr/local/bin/gcc-10",
+            "compilerPath": "/usr/bin/clang",
             "cStandard": "gnu17",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "macos-gcc-x64"
