@@ -1,3 +1,6 @@
 *.ttf
 *.png
 .DS_Store
+vendor/
+examples/
+demos/
